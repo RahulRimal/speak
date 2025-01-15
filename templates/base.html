@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% load static %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Tempp{% endblock %}</title>
+    <!-- Add a link to an external CSS file -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+    <!-- Add a link to Google Fonts for typography -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Add a link to Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      integrity="sha512-PwM1E61xqTY9JdFs7sk5z8rTQQhx+8/9BS5R6y3DgYVJ72zwb8qsSkFPFb1mNHMa0L5IC6kcyq6JqsQHrWfS3g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+  <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+      <div class="container">
+        <a href="{% url 'home' %}" class="navbar-brand">Tempp</a>
+        <ul class="navbar-menu">
+          <li><a href="{% url 'home' %}">Home</a></li>
+          {% if user.is_authenticated %}
+          <li>
+            <a href="{% url 'logout' %}" class="logout-btn"
+              ><i class="fas fa-sign-out-alt"></i> Logout</a
+            >
+          </li>
+          <li>
+            <a href="{% url 'profile' %}">
+              <i class="fas fa-user"></i>
+              {% if user.image %}
+                <img
+                  class="profile-avatar"
+                  src="{{ user.image.url }}"
+                  alt="Profile Avatar"
+                />
+              {% else %}
+                <div class="profile-avatar-default">
+                  {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
+                </div>
+              {% endif %}
+            </a>
+          </li>
+          {% else %}
+          <li>
+            <a href="{% url 'login' %}" class="login-btn"
+              ><i class="fas fa-sign-in-alt"></i> Login</a
+            >
+          </li>
+          <li>
+            <a href="{% url 'signup' %}" class="signup-btn"
+              ><i class="fas fa-user-plus"></i> Sign Up</a
+            >
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">{% block content %} {% endblock %}</main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        {% comment %} <p>&copy; 2024 Speak Free. All rights reserved.</p> {% endcomment %}
+      </div>
+    </footer>
+  </body>
+</html>

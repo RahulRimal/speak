@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header Section -->
+        <header class="header">
+            {% comment %} <h1>Welcome to Speak Free</h1> {% endcomment %}
+        </header>
+
+        <!-- Create Room Button Section -->
+        <div class="create-room">
+            <a href="{% url 'create_room' %}" class="button create-room-btn">Create a New Room</a>
+        </div>
+
+        <!-- Room Listing Section -->
+        <section class="room-listing">
+            <h2>Available Rooms</h2>
+            <ul class="room-list">
+            {% if rooms %}
+                    {% for room in rooms %}
+                        <li class="room-item" data-room-id="{{ room.id }}">
+                            <div class="room-participants">
+                                {% for participant in room.participants.all %}
+                                    {% if participant.user.image %}
+                                        <img src="{{ participant.user.image.url }}" 
+                                             alt="{{ participant.user.username }}'s Profile Picture" 
+                                             class="participant-img">
+                                    {% else %}
+                                        <div class="participant-img-default">
+                                            {{ participant.user.first_name|slice:":1" }}{{ participant.user.last_name|slice:":1" }}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+
+                            <!-- Room Details -->
+                            <div class="room-details">
+                                <p class="room-name">{{ room.name }}</p>
+                                <span class="room-host">Hosted by {{ room.host.username }}</span>
+                            </div>
+
+                            <!-- Join Button -->
+                            <div class="join-room">
+                                <a href="{% url 'join_room' room.id %}" class="button join-room-btn">Join</a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    {% else %}
+                </ul>
+                <p>No rooms are available. <a href="{% url 'create_room' %}">Create your room</a>!</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <!-- Styling -->
+    <style>
+        /* Main Content Styling */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Header Styling */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #444;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        /* Create Room Button Styling */
+        .create-room {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .create-room-btn {
+            background-color: #ff5722;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 1rem;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .create-room-btn:hover {
+            background-color: #e64a19;
+        }
+
+        /* Room Listing Styling */
+        .room-listing {
+            margin-top: 40px;
+        }
+
+        .room-listing h2 {
+            font-size: 1.75rem;
+            color: #444;
+            margin-bottom: 20px;
+        }
+
+        .room-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .room-item {
+            display: flex;
+            align-items: center;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .room-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Host Image Styling */
+        .room-host-image {
+            margin-right: 20px;
+        }
+
+        .host-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Participants Images Styling */
+        .room-participants {
+            display: flex;
+            gap: 10px;
+            margin-right: 20px;
+        }
+
+        .participant-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .participant-img-default {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        /* Room Details Styling */
+        .room-details {
+            flex-grow: 1;
+        }
+
+        .room-name {
+            color: #ff5722;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .room-name:hover {
+            text-decoration: underline;
+        }
+
+        .room-host {
+            display: block;
+            color: #777;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        /* Join Button Styling */
+        .join-room {
+            text-align: center;
+        }
+
+        .join-room-btn {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 8px 16px;
+            font-size: 1rem;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .join-room-btn:hover {
+            background-color: #388e3c;
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+    const roomItems = document.querySelectorAll(".room-item");
+    const roomList = document.querySelector(".room-list");
+
+    roomItems.forEach((item) => {
+        const roomId = item.dataset.roomId;
+        const ws = new WebSocket(`wss://${window.location.host}/ws/room/${roomId}/`);
+        const participantsContainer = item.querySelector(".room-participants");
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.action === "join_room") {
+                // Add the new participant's image
+                const participantImg = document.createElement("img");
+                participantImg.src = data.image_url || "/static/default-profile.png"; // Fallback
+                participantImg.alt = `${data.username}'s Profile Picture`;
+                participantImg.classList.add("participant-img");
+                participantsContainer.appendChild(participantImg);
+            } else if (data.action === "leave_room") {
+                // Remove the participant's image
+                const participantImgs = participantsContainer.querySelectorAll("img");
+                participantImgs.forEach((img) => {
+                    if (img.alt === `${data.username}'s Profile Picture`) {
+                        img.remove();
+                    }
+                });
+            }
+        };
+    });
+
+    // WebSocket for dynamic room creation
+
+    if (!roomList) {
+        console.log(roomList);
+        console.error("Room list element not found.");
+        return;
+    }
+    const roomListWs = new WebSocket(`wss://${window.location.host}/ws/rooms/`);
+
+    roomListWs.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if ( data.action === "add_room") {
+            // Create a new room item dynamically
+            const roomItem = document.createElement("li");
+            roomItem.className = "room-item";
+            roomItem.dataset.roomId = data.id;
+
+            roomItem.innerHTML = `
+                <div class="room-participants">
+                    ${data.participants.map(participant => `
+                        ${participant.image_url ? `
+                            <img src="${participant.image_url}" 
+                                 alt="${participant.username}'s Profile Picture" 
+                                 class="participant-img">
+                        ` : `
+                            <div class="participant-img-default">
+                                ${participant.first_name.charAt(0)}${participant.last_name.charAt(0)}
+                            </div>
+                        `}
+                    `).join('')}
+                </div>
+
+                <!-- Room Details -->
+                <div class="room-details">
+                    <p class="room-name">${data.name}</p>
+                    <span class="room-host">Hosted by ${data.host_username}</span>
+                </div>
+
+                <!-- Join Button -->
+                <div class="join-room">
+                    <a href="/room/${data.id}/join/" class="button join-room-btn">Join</a>
+                </div>
+            `;
+
+            roomList.appendChild(roomItem);
+        }
+        else if (data.action === "remove_room") {
+            // Remove the room item dynamically
+            const roomItem = roomList.querySelector(`[data-room-id="${data.room_id}"]`);
+            if (roomItem) {
+                roomItem.remove();
+            }
+        }
+    };
+});
+
+
+    </script>
+{% endblock %}

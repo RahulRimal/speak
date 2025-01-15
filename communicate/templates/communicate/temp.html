@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="room-detail">
+  <!-- Room Header -->
+  <header class="room-header">
+    <h2>Room: {{ room.name }}</h2>
+    <p>Host: <strong>{{ room.host.username }}</strong></p>
+  </header>
+
+  <!-- Participant List -->
+  <section class="participants">
+    <h3>Participants</h3>
+    <div class="participant-grid">
+      {% if room.participants.all %}
+        {% for participant in room.participants.all %}
+          <div class="participant-card" data-username="{{ participant.user.username }}">
+            {% if participant.user.image %}
+              <img
+                src="{{ participant.user.image.url }}"
+                alt="{{ participant.user.username }}'s profile picture"
+                class="participant-img"
+              />
+            {% else %}
+              <div class="profile-avatar-default">
+                {{ participant.user.first_name|slice:":1" }}{{ participant.user.last_name|slice:":1" }}
+              </div>
+            {% endif %}
+            <p class="participant-name">{{ participant.user.username }}</p>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p>No participants in the room yet.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Actions -->
+  <div class="room-actions">
+    <button id="mute-mic" class="mic-btn" title="Microphone muted" onclick="toggleMute()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="mic-icon" viewBox="0 0 16 16">
+        <path id="mic-path" d="M8 13a5 5 0 0 0 5-5h1a6 6 0 0 1-12 0h1a5 5 0 0 0 5 5z"/>
+        <path id="mic-cross-path" fill-rule="evenodd" d="M8 1a3 3 0 0 1 3 3v3a3 3 0 0 1-6 0V4a3 3 0 0 1 3-3zm0 1a2 2 0 0 0-2 2v3a2 2 0 0 0 4 0V4a2 2 0 0 0-2-2z"/>
+        <path id="mic-cross-line" d="M4 4L12 12M12 4L4 12" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <a href="{% url 'leave_room' room.id %}" class="action-btn leave-room">Leave Room</a>
+  </div>
+</div>
+
+<!-- WebRTC Logic -->
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script>
+  const ws = new WebSocket(`wss://${window.location.host}/ws/room/{{ room.id }}/`);
+  const participantGrid = document.querySelector(".participant-grid");
+  let localStream;
+  let micTrack = null; // Store reference to microphone track
+  const peerConnections = {}; // Manage peer connections for each participant
+  let isMuted = false; // Track mute state
+
+  // Initialize the local stream and capture mic track
+  async function initLocalStream() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStream = stream;
+      micTrack = stream.getAudioTracks()[0]; // Capture the mic track
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("Microphone access is required for voice chat.");
+    }
+  }
+
+  // Create a new participant card
+  function createParticipantCard(data) {
+    const participantCard = document.createElement("div");
+    participantCard.className = "participant-card";
+    participantCard.dataset.username = data.username;
+
+    if (data.image_url) {
+      participantCard.innerHTML = `
+        <img src="${data.image_url}" alt="${data.username}'s profile picture" class="participant-img" />
+        <p class="participant-name">${data.username}</p>
+      `;
+    } else {
+      participantCard.innerHTML = `
+        <div class="profile-avatar-default">
+          ${data.first_name.charAt(0)}${data.last_name.charAt(0)}
+        </div>
+        <p class="participant-name">${data.username}</p>
+      `;
+    }
+
+    participantGrid.appendChild(participantCard);
+  }
+
+  // Remove a participant card
+  function removeParticipantCard(username) {
+    const participantCard = document.querySelector(`.participant-card[data-username='${username}']`);
+    if (participantCard) participantCard.remove();
+  }
+
+  // Create a peer connection
+  function createPeerConnection(username) {
+    if (peerConnections[username]) return peerConnections[username]; // Avoid duplicate connections
+
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
+      ],
+    });
+
+    if (localStream) {
+      localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+    }
+    peerConnections[username] = pc;
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        ws.send(
+          JSON.stringify({
+            action: "webrtc_ice_candidate",
+            candidate: event.candidate,
+            username,
+          })
+        );
+      }
+    };
+
+    pc.ontrack = (event) => {
+      const audioElement = document.createElement("audio");
+      audioElement.srcObject = event.streams[0];
+      audioElement.autoplay = true;
+      document.body.appendChild(audioElement);
+    };
+
+    return pc;
+  }
+
+  // Close a peer connection
+  function closePeerConnection(username) {
+    const pc = peerConnections[username];
+    if (pc) {
+      pc.close();
+      delete peerConnections[username];
+    }
+  }
+
+  // WebSocket Handlers
+  ws.onopen = async () => {
+    await initLocalStream();
+    createPeerConnection("{{ request.user.username }}");
+
+    // Send offer
+    peer = peerConnections["{{ request.user.username }}"];
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+
+    ws.send(
+      JSON.stringify({
+        action: "webrtc_offer",
+        offer: peer.localDescription,
+        username: "{{ request.user.username }}",
+      })
+    );
+  };
+
+  ws.onmessage = async (event) => {
+    const data = JSON.parse(event.data);
+
+    switch (data.action) {
+      case "join_room":
+        createParticipantCard(data);
+        createPeerConnection(data.username);
+        break;
+
+      case "leave_room":
+        removeParticipantCard(data.username);
+        closePeerConnection(data.username);
+        break;
+
+      case "webrtc_offer":
+        await handleOffer(data.offer, data.username);
+        break;
+
+      case "webrtc_answer":
+        await handleAnswer(data.answer, data.username);
+        break;
+
+      case "webrtc_ice_candidate":
+        if (peerConnections[data.username]) {
+          await peerConnections[data.username].addIceCandidate(data.candidate);
+        }
+        break;
+
+      case "mute_update":
+        handleMuteUpdate(data.username, data.isMuted);
+        break;
+
+      default:
+        console.warn("Unknown WebSocket action:", data.action);
+    }
+  };
+
+  ws.onclose = () => {
+    console.warn("WebSocket closed.");
+    Object.keys(peerConnections).forEach(closePeerConnection);
+  };
+
+  ws.onerror = (error) => {
+    console.error("WebSocket error:", error);
+  };
+
+  async function handleOffer(offer, username) {
+    const pc = createPeerConnection(username);
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    ws.send(
+      JSON.stringify({
+        action: "webrtc_answer",
+        answer: pc.localDescription,
+        username,
+      })
+    );
+  }
+
+  async function handleAnswer(answer, username) {
+    const pc = peerConnections[username];
+    if (pc) {
+      if (pc.signalingState === "have-local-offer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      } else {
+        console.warn(`Unexpected signaling state for handleAnswer: ${pc.signalingState}`);
+      }
+    }
+  }
+
+  // Toggle mute state and send update to WebSocket
+  function toggleMute() {
+    if (micTrack) {
+      isMuted = !isMuted; // Toggle mute state
+      micTrack.enabled = !isMuted; // Disable or enable the microphone track
+      ws.send(
+        JSON.stringify({
+          action: "mute_update",
+          username: "{{ request.user.username }}",
+          isMuted: isMuted,
+        })
+      );
+      updateMicButton(); // Update the button UI based on the state
+    }
+  }
+
+  // Handle mute update from WebSocket
+  function handleMuteUpdate(username, isMuted) {
+    const participantCard = document.querySelector(`.participant-card[data-username='${username}']`);
+    if (participantCard) {
+      const micIcon = participantCard.querySelector(".mic-icon");
+      if (micIcon) {
+        if (isMuted) {
+          micIcon.classList.add("muted");
+        } else {
+          micIcon.classList.remove("muted");
+        }
+      }
+    }
+  }
+
+  // Update the microphone button UI
+  function updateMicButton() {
+    const micButton = document.getElementById("mute-mic");
+    if (isMuted) {
+      micButton.style.backgroundColor = "#444141";
+      document.getElementById("mic-path").style.display = "none";
+      document.getElementById("mic-cross-line").style.display = "block";
+    } else {
+      micButton.style.backgroundColor = "#ff4d4d"; // Red when unmuted
+      document.getElementById("mic-path").style.display = "block"; // Show active mic path
+      document.getElementById("mic-cross-line").style.display = "none"; // Hide cross
+    }
+  }
+
+  // Set initial mic button state
+  updateMicButton();
+</script>
+
+
+<style>
+  .room-detail {
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+  }
+
+  .room-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .room-header h2 {
+    font-size: 2rem;
+    margin-bottom: 5px;
+    color: #333;
+  }
+
+  .room-header p {
+    font-size: 1.2rem;
+    color: #666;
+  }
+
+  .participants {
+    margin-top: 20px;
+  }
+
+  .participants h3 {
+    font-size: 1.5rem;
+    color: #444;
+    margin-bottom: 15px;
+  }
+
+  .participant-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+  }
+
+  .participant-card {
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .participant-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  .participant-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+  }
+
+  .profile-avatar-default {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+  }
+
+  .participant-name {
+    font-size: 1rem;
+    color: #333;
+    font-weight: bold;
+    margin: 0;
+  }
+
+  .room-actions {
+    text-align: center;
+    margin-top: 30px;
+  }
+
+  .mic-btn {
+    background-color: #f44336;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .mic-btn:disabled {
+    opacity: 0.6;
+  }
+
+  .mic-icon {
+    width: 24px;
+    height: 24px;
+    fill: #fff;
+  }
+
+  .action-btn {
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #d32f2f;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    margin: 0 10px;
+    transition: background-color 0.3s ease;
+  }
+
+  .action-btn:hover {
+    background-color: #c62828;
+  }
+  
+</style>
+
+{% endblock %}
