@@ -4,43 +4,50 @@
 {% block title %}Profile{% endblock %}
 
 {% block content %}
-<div class="profile-container">
-  <!-- Profile Header -->
-  <div class="profile-card">
-    {% if user.image %}
-    <img
-      class="profile-avatar"
-      src="{{ user.image.url }}"
-      alt="Profile Avatar"
-    />
-    {% else %}
-    <img
-      class="profile-avatar"
-      src="{% static 'default_avatar.jpg' %}"
-      alt="Default Avatar"
-    />
-    {% endif %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
 
-    <h1 class="profile-name" style="margin-bottom:0">{{ user.first_name }} {{ user.last_name }}</h1>
-    <p class="profile-name" style="margin:0"><em>@{{ user.username }}</em></p>
-    <p class="profile-email">{{ user.email }}</p>
-  </div>
+    <!-- Profile Card -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body text-center">
 
-  <!-- Profile Details Section -->
-  <div class="profile-details">
-    {% comment %} <h2>About</h2>
-    <p>
-      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus luctus
-      urna sed urna ultricies ac tempor dui sagittis.
-    </p> {% endcomment %}
+        {% with social=user.socialaccount_set.first %}
+        {% if user.image %}
+        <img src="{{ user.image.url }}" class="rounded-circle mb-3" width="120" height="120" alt="Profile Avatar" />
+        {% elif social and social.get_avatar_url %}
+        <img src="{{ social.get_avatar_url }}" class="rounded-circle mb-3" width="120" height="120"
+          alt="Google Avatar" />
+        {% else %}
+        <img src="{% static 'default_avatar.jpg' %}" class="rounded-circle mb-3" width="120" height="120"
+          alt="Default Avatar" />
+        {% endif %}
+        {% endwith %}
 
-    <h2>Settings</h2>
-    <ul class="profile-settings">
-      <li>
-        <a href="{% url 'change_password' %}" class="button">Change Password</a>
-      </li>
-      <li><a href="{% url 'logout' %}" class="button danger">Logout</a></li>
-    </ul>
+        <h3 class="mb-0">{{ user.first_name }} {{ user.last_name }}</h3>
+        <p class="text-muted mb-1">@{{ user.username }}</p>
+        <p class="text-muted">{{ user.email }}</p>
+
+      </div>
+    </div>
+
+    <!-- Settings Card -->
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Settings</h5>
+
+        <div class="d-grid gap-2">
+          {% if not user.socialaccount_set.first %}
+          <a href="{% url 'change_password' %}" class="btn btn-outline-warning">
+            <i class="fas fa-key"></i> Change Password
+          </a>
+          {% endif %}
+          <a href="{% url 'logout' %}" class="btn btn-outline-danger">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 {% endblock %}

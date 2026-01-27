@@ -10,7 +10,7 @@ from django.contrib import messages
 
 from django import forms
 from django.contrib.auth import get_user_model
-
+from .forms import EmailOrUsernameAuthenticationForm
 User = get_user_model()
 
 
@@ -74,13 +74,14 @@ def user_login(request):
             self.fields["password"].widget.attrs.update({"class": "form-control"})
 
     if request.method == "POST":
-        form = CustomAuthenticationForm(data=request.POST)
+        # form = CustomAuthenticationForm(data=request.POST)
+        form = EmailOrUsernameAuthenticationForm(data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
             return redirect("home")
     else:
-        form = CustomAuthenticationForm()
+        form = EmailOrUsernameAuthenticationForm()
     return render(request, "autho/login.html", {"form": form})
 
 

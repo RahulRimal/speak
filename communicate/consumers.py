@@ -46,6 +46,10 @@ class AudioRoomConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         action = data.get("action")
 
+        if action == "ping":
+            await self.send(text_data=json.dumps({"action": "pong"}))
+            return
+
         if action in [
             "webrtc_offer",
             "webrtc_answer",

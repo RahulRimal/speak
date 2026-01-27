@@ -351,3 +351,45 @@ body {
 .password-change-form .button.secondary:hover {
     background: #5a6268;
 }
+
+
+.room-item {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.room-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.08);
+}
+
+
+:root {
+  --bs-primary: #ff5722;
+  --bs-primary-rgb: 255, 87, 34;
+
+  --bs-link-color: #ff5722;
+  --bs-link-hover-color: #e64a19;
+}
+
+
+
+.btn-primary {
+  --bs-btn-bg: #ff5722;
+  --bs-btn-border-color: #ff5722;
+  --bs-btn-hover-bg: #e64a19;
+  --bs-btn-hover-border-color: #e64a19;
+  --bs-btn-active-bg: #d84315;
+  --bs-btn-active-border-color: #d84315;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #ff5722;
+  --bs-btn-border-color: #ff5722;
+  --bs-btn-hover-bg: #ff5722;
+  --bs-btn-hover-border-color: #ff5722;
+}
+
+.form-control:focus {
+  border-color: #ff5722;
+  box-shadow: 0 0 0 0.2rem rgba(255, 87, 34, 0.25);
+}

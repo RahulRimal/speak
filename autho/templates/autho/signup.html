@@ -1,195 +1,111 @@
 {% extends "base.html" %}
+{% load socialaccount %}
 
 {% block title %}Sign Up{% endblock %}
 
 {% block content %}
-    <div class="signup-container">
-        <h1>Sign Up</h1>
-        <form method="post" enctype="multipart/form-data" class="signup-form">
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+
+      <div class="card shadow-sm mt-5">
+        <div class="card-body p-4">
+
+          <h3 class="text-center mb-4">Create Account</h3>
+
+          <form method="post" enctype="multipart/form-data" novalidate>
             {% csrf_token %}
-            
-            <div class="form-group">
-                <label for="{{ form.username.id_for_label }}">Username</label>
-                {{ form.username }}
-                <!-- Display username errors -->
-                {% if form.username.errors %}
-                    <div class="error-message">
-                        {% for error in form.username.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label for="{{ form.first_name.id_for_label }}">First Name</label>
-                {{ form.first_name }}
-                <!-- Display first name errors -->
-                {% if form.first_name.errors %}
-                    <div class="error-message">
-                        {% for error in form.first_name.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+
+            <!-- Username -->
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+              {{ form.username}}
+              {% for error in form.username.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
             </div>
 
-            <div class="form-group">
-                <label for="{{ form.last_name.id_for_label }}">Last Name</label>
-                {{ form.last_name }}
-                <!-- Display last name errors -->
-                {% if form.last_name.errors %}
-                    <div class="error-message">
-                        {% for error in form.last_name.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            <!-- First Name -->
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name</label>
+              {{ form.first_name}}
+              {% for error in form.first_name.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
             </div>
 
-            <div class="form-group">
-                <label for="{{ form.email.id_for_label }}">Email</label>
-                {{ form.email }}
-                <!-- Display email errors -->
-                {% if form.email.errors %}
-                    <div class="error-message">
-                        {% for error in form.email.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            <!-- Last Name -->
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
+              {{ form.last_name}}
+              {% for error in form.last_name.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
             </div>
 
-            <div class="form-group">
-                <label for="{{ form.password1.id_for_label }}">Password</label>
-                {{ form.password1 }}
-                <!-- Display password errors -->
-                {% if form.password1.errors %}
-                    <div class="error-message">
-                        {% for error in form.password1.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            <!-- Email -->
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+              {{ form.email}}
+              {% for error in form.email.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
             </div>
 
-            <div class="form-group">
-                <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
-                {{ form.password2 }}
-                <!-- Display confirm password errors -->
-                {% if form.password2.errors %}
-                    <div class="error-message">
-                        {% for error in form.password2.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            <!-- Password -->
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.password1.id_for_label }}">Password</label>
+              {{ form.password1}}
+              {% for error in form.password1.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
             </div>
 
-            <div class="form-group">
-                <label for="{{ form.image.id_for_label }}">Profile Image</label>
-                {{ form.image }}
-                <!-- Display profile image errors -->
-                {% if form.image.errors %}
-                    <div class="error-message">
-                        {% for error in form.image.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            <!-- Confirm Password -->
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.password2.id_for_label }}">Confirm Password</label>
+              {{ form.password2}}
+              {% for error in form.password2.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
             </div>
 
-            <button type="submit" class="btn-submit">Sign Up</button>
-        </form>
-        <p class="login-link">Already have an account? <a href="{% url 'login' %}">Log In</a></p>
+            <!-- Profile Image -->
+            <div class="mb-4">
+              <label class="form-label" for="{{ form.image.id_for_label }}">Profile Image</label>
+              {{ form.image}}
+              {% for error in form.image.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn btn-primary w-100">
+              Sign Up
+            </button>
+          </form>
+
+          <!-- Divider -->
+          <div class="text-center my-3 text-muted">or</div>
+
+          <!-- Google Login -->
+          <a href="{% provider_login_url 'google' %}"
+             class="btn btn-danger w-100">
+            <i class="fab fa-google me-2"></i> Continue with Google
+          </a>
+
+          <!-- Login link -->
+          <p class="text-center mt-3 mb-0">
+            Already have an account?
+            <a href="{% url 'login' %}" class="text-decoration-none text-primary">
+              Log in
+            </a>
+          </p>
+
+        </div>
+      </div>
+
     </div>
-
-    <style>
-        /* Container for centering the form */
-        .signup-container {
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Form Styles */
-        .signup-form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        /* Form Group Styles */
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group label {
-            font-size: 14px;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .form-control {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-control:focus {
-            border-color: #0056b3;
-            outline: none;
-        }
-
-        /* Button Styles */
-        .btn-submit {
-            padding: 10px;
-            background-color: #0056b3;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .btn-submit:hover {
-            background-color: #004080;
-        }
-
-        /* Login Link */
-        .login-link {
-            text-align: center;
-            font-size: 14px;
-            color: #333;
-        }
-
-        .login-link a {
-            color: #0056b3;
-            text-decoration: none;
-        }
-
-        .login-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* Styling for input fields like file input */
-        input[type="file"] {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        /* Error Styles */
-        .error-message {
-            color: red;
-            font-size: 12px;
-        }
-    </style>
+  </div>
+</div>
 {% endblock %}
